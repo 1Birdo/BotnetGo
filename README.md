@@ -25,13 +25,20 @@ This project implements a simple Botnet Control and Command (CnC) server in Go, 
    ```bash
    go mod tidy
    ```
+   If you are experiencing errors / issues or just 
+   want to reinstall to redo the Mod files just do:
+   
+   ```bash
+   go mod init cnc
+   go mod tidy
+   ```
 
-3. **Build the project**:
+4. **Build the project**:
    ```bash
    go build -o botnet
    ```
 
-4. **Run the server**:
+5. **Run the server**:
    ```bash
    ./botnet
    ```
