@@ -42,6 +42,11 @@ This project implements a simple Botnet Control and Command (CnC) server in Go, 
    ```bash
    ./botnet
    ```
+6. **Running the Device / Bot files**:
+   You bascially want to enter into the ```dir Devices``` Directory
+   ```bash
+   
+   ```
 
 ## Configuration
 Edit the constants in `main.go` to configure:
