@@ -52,8 +52,7 @@ Edit the constants in `main.go` to configure:
 
 ## Disclaimer
 
-#  ```This project is for educational purposes only. Ensure you have permission before testing any network security tools on remote servers.
-I bear no responsibility or obligation to anyone using this for malicious purposes. ```
+#  ```This project is for educational purposes only. Ensure you have permission before testing any network security tools on remote servers. I bear no responsibility or obligation to anyone using this for malicious purposes. ```
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
