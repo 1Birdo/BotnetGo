@@ -1,0 +1,38 @@
+[
+  {
+    "Username": "root",
+    "Password": "birdoadmin",
+    "Expire": "2024-12-25T10:30:00.0-04:00",
+    "Level": "Owner"
+  },
+  {
+    "Username": "root",
+    "Password": "jiggeyadmin",
+    "Expire": "2023-12-25T10:30:00.0-04:00",
+    "Level": "Owner"
+  },
+  {
+    "Username": "malware",
+    "Password": "panicballs",
+    "Expire": "2025-4-13T5:56:22.0-04:00",
+    "Level": "Admin"
+  },
+  {
+    "Username": "viptest",
+    "Password": "bittchenstyle",
+    "Expire": "2026-6-20T7:25:44.0-04:00",
+    "Level": "Pro"
+  },
+  {
+    "Username": "basictest",
+    "Password": "basicplain",
+    "Expire": "2026-12-20T9:30:50.0-04:00",
+    "Level": "basic"
+  },
+  {
+    "Username": "root",
+    "Password": "whoami",
+    "Expire": "2026-12-20T9:30:50.0-04:00",
+    "Level": "Pro"
+  }
+]
