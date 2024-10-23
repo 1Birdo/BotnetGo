@@ -65,13 +65,28 @@ Edit the constants in `main.go` to configure:
 
 2. **Users **:
 
-   After that, you will be prompted to enter a username and password. If you don't remember them, you can check the users.json file, which contains the login information and more.  
+   After that, you will be prompted to enter a username and password.
+   If you don't remember them, you can check the users.json file,
+   which contains the login information and more.  
 
-3.  **Future Development/ Power problem **:
+4.  **Future Development/ Power problem **:
  ```bash
-   When searching for a reliable network source, one of the most significant concerns is the power it can deliver. Many users face challenges when a single source does not meet their expectations, they often switch to a differnt source or just abandon their search altogether.
+   When searching for a reliable source, one of the most significant concerns is the power it can deliver.
+   Many users face challenges when a single source does not meet their expectations,
+   they often switch to a differnt source or just abandon their search altogether.
 
-This source is designed to provide expected performance. To start fully utilizing this source you will need around 10 to 16 servers, each equipped with 1 core and 1 GB of RAM, and an output capacity of 1 Gbps, you can achieve approximately 30 to 40 Gbps for UDP traffic.
+   This source is designed to provide the expected performance. To start fully utilizing this source you
+   will need around 10 to 16 servers, each equipped with 1 core and 1 GB 
+   of RAM, and an output capacity of 1 Gbps, you can achieve approximately 30 to 40 Gbps for UDP traffic.
+
+   For me i found a rental host that can do 16 servers, Including CNC to test this on,
+   only costing 20 GBP (Great British Pounds) in BTC
+
+   I wont share ATM mainly due to the host implementing tighter security if abused.
+
+   You can obtain affordable servers by using a rental VPS service or a budget host.
+   However, be aware that VPS providers like OVH, Vultr, or Linode may terminate or suspend
+   your VPS due to bandwidth or flooding abuse.
   ```
 Performance may vary based on several factors, including:
  ```bash
