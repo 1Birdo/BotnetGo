@@ -57,6 +57,28 @@ Edit the constants in `main.go` to configure:
   !tcpflood <target_ip> <target_port> <duration>
   ```
 
+  ## Logging in 
+1. **How to Login**:
+   On Line 290 there is a string that is prompted to be called for before being able to login to it
+   e.g. loginforme
+
+
+2. **Users **:
+
+   After that, you will be prompted to enter a username and password. If you don't remember them, you can check the users.json file, which contains the login information and more.  
+
+3.  **Future Development/ Power problem **:
+   When searching for a reliable network source, one of the most significant concerns is the power it can deliver. Many users face challenges when a single source does not meet their expectations, they often switch to a differnt source or just abandon their search altogether.
+
+This source is designed to provide expected performance. To start fully utilizing this source you will need around 10 to 16 servers, each equipped with 1 core and 1 GB of RAM, and an output capacity of 1 Gbps, you can achieve approximately 30 to 40 Gbps for UDP traffic.
+
+Performance may vary based on several factors, including:
+
+*.Packet size
+*.Server output
+*.RTT based on geolocation
+For TCP methods, similar performance can be expected for each methods, typically ranging from 20 to 28 Gbps, though this is also influenced by various conditions.
+   
 ## Disclaimer
 
 #  ```This project is for educational purposes only. Ensure you have permission before testing any network security tools on remote servers. I bear no responsibility or obligation to anyone using this for malicious purposes. ```
