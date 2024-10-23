@@ -68,15 +68,17 @@ Edit the constants in `main.go` to configure:
    After that, you will be prompted to enter a username and password. If you don't remember them, you can check the users.json file, which contains the login information and more.  
 
 3.  **Future Development/ Power problem **:
+ ```bash
    When searching for a reliable network source, one of the most significant concerns is the power it can deliver. Many users face challenges when a single source does not meet their expectations, they often switch to a differnt source or just abandon their search altogether.
 
 This source is designed to provide expected performance. To start fully utilizing this source you will need around 10 to 16 servers, each equipped with 1 core and 1 GB of RAM, and an output capacity of 1 Gbps, you can achieve approximately 30 to 40 Gbps for UDP traffic.
-
+  ```
 Performance may vary based on several factors, including:
-
-*.Packet size
-*.Server output
-*.RTT based on geolocation
+ ```bash
+   *.Packet size
+   *.Server output
+   *.RTT based on geolocation
+   ```
 For TCP methods, similar performance can be expected for each methods, typically ranging from 20 to 28 Gbps, though this is also influenced by various conditions.
    
 ## Disclaimer
