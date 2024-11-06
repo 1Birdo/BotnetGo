@@ -111,7 +111,9 @@ Edit the constants in `main.go` to configure:
    will need around 10 to 16 servers, each equipped with 1 core and 1 GB 
    of RAM, and an output capacity of 1 Gbps, you can achieve approximately 30 to 40 Gbps for UDP traffic.
 
-      I'd recommend using rental hosts for this purpose, as it allows you to create multiple server instances without having to pay an entire upfront cost of buying several servers. On average, with a Command and Control (CNC) server to test this would cost around 20 GBP (British Pounds) in Bitcoin.
+   I'd recommend using rental hosts for this purpose, as it allows you to create multiple server instances without
+   having to pay an entire upfront cost of buying several servers. On average, with a Command and Control (CNC) server
+   to test this would cost around 20 GBP (British Pounds) in Bitcoin.
 
    You can obtain affordable servers by using a rental VPS service or a budget host.
    However, be aware that VPS providers like OVH, Vultr, or Linode may terminate or suspend
