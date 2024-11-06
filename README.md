@@ -114,8 +114,6 @@ Edit the constants in `main.go` to configure:
    For me i found a rental host that can do 16 servers, Including CNC to test this on,
    only costing 20 GBP (Great British Pounds) in BTC
 
-   I wont share ATM mainly due to the host implementing tighter security if abused.
-
    You can obtain affordable servers by using a rental VPS service or a budget host.
    However, be aware that VPS providers like OVH, Vultr, or Linode may terminate or suspend
    your VPS due to bandwidth or flooding abuse.
