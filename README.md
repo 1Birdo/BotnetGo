@@ -102,7 +102,7 @@ Edit the constants in `main.go` to configure:
    which contains the login information and more.  
 
 4.  **Future Development/ Power problem **:
- ```bash
+ ```
    When searching for a reliable source, one of the most significant concerns is the power it can deliver.
    Many users face challenges when a single source does not meet their expectations,
    they often switch to a differnt source or just abandon their search altogether.
