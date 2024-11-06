@@ -1,4 +1,6 @@
-# Botnet Control and Command (CnC) Server
+# Golang Botnet focused on basic network stressing 
+
+2024-09-20
 
 ## Overview
 This project implements a simple Botnet Control and Command (CnC) server in Go, enabling users to manage connected bots and execute various network attack commands.
