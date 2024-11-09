@@ -1,6 +1,8 @@
 # Golang Botnet focused on basic network stressing 
 
 2024-09-20
+Last Botnet Source Release, trying to more to more alternative and better projects.
+
 
 ## Overview
 This project implements a simple Botnet Control and Command (CnC) server in Go, enabling users to manage connected bots and execute various network attack commands.
@@ -136,6 +138,8 @@ For TCP methods, similar performance can be expected for each methods, typically
 ## Disclaimer
 
 #  ```This project is for educational purposes only. Ensure you have permission before testing any network security tools on remote servers. I bear no responsibility or obligation to anyone using this for malicious purposes. ```
+
+DDoS attacks are a serious crime that disrupt critical infrastructure, causing significant damage. Initiatives like Operation PowerOFF and Operation Endgame have highlighted the growing threat, targeting cybercriminals behind DDoS-for-hire services. These operations emphasize that DDoS is no longer just a nuisance but a severe offense with real-world consequences, and those involved face legal repercussions.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
