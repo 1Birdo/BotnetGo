@@ -16,6 +16,9 @@ This project implements a simple Botnet Control and Command (CnC) server in Go, 
 - Terminal/command line interface
 - Basic understanding of Go and network programming
 
+![image1](https://github.com/user-attachments/assets/812f9717-c037-4399-ba57-e9bf4f610326)
+
+
 ## Installation
 1. **Clone the repository**:
    ```bash
