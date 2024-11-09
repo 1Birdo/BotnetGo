@@ -16,7 +16,7 @@ This project implements a simple Botnet Control and Command (CnC) server in Go, 
 - Terminal/command line interface
 - Basic understanding of Go and network programming
 
-##![image1](https://github.com/user-attachments/assets/812f9717-c037-4399-ba57-e9bf4f610326)
+**![image1](https://github.com/user-attachments/assets/812f9717-c037-4399-ba57-e9bf4f610326)**
 
 
 ## Installation
@@ -69,7 +69,7 @@ Edit the constants in `main.go` to configure:
 - **Server Ports**: Modify `USER_SERVER_PORT` and `BOT_SERVER_PORT`.
 - **Killer**: Modify `killerEnabled` to `true` if you want to run on runtime and not when commanded to.
 
-##![image](https://github.com/user-attachments/assets/d5886f8c-1ac4-485d-b88c-b63a0acd51ff)
+**![image](https://github.com/user-attachments/assets/d5886f8c-1ac4-485d-b88c-b63a0acd51ff)**
 
 
 ## Usage
