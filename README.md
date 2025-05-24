@@ -1,4 +1,5 @@
 # Golang Botnet focused on basic network stressing 
+V4 Soon?
 
 2024-09-20
 Last Botnet Source Release, trying to do more alternative and better projects.
