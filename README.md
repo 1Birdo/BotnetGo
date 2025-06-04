@@ -1,5 +1,7 @@
 # Golang Botnet focused on basic network stressing 
-V4 Soon, V4 NOW it in Development as we speak 
+
+V4 Soon, V4 NOW it in Development as we speak, This will combind both Gostress-V2 + BotnetGo Project together hopefully making one big C2 Framework with a REST API on web dashboard + terminal supporting openssl TLS 1.3 Enfored + Trusted.
+
 >
 > 2025-04-N/A
 >
