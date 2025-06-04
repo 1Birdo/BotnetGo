@@ -1,6 +1,8 @@
 # Golang Botnet focused on basic network stressing 
 >V4 Soon, V4 NOW it in Development as we speak 
-> 2025-04-NA
+>
+> 2025-04-N/A
+>
 >https://github.com/1Birdo/GoStress
 
 > 2024-09-20
