@@ -3,8 +3,8 @@ V4 Soon, V4 NOW it in Development as we speak
 
 https://github.com/1Birdo/GoStress
 
-2024-09-20
-Last Botnet Source Release, trying to do more alternative and better projects.
+> 2024-09-20
+> Last Botnet Source Release, trying to do more alternative and better projects.
 
 
 ## Overview
