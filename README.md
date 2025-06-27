@@ -1,6 +1,6 @@
 # Golang Botnet focused on basic network stressing 
 
-V4 Soon, V4 NOW it in Development as we speak, This will combind both Gostress-V2 + BotnetGo Project together hopefully making one big C2 Framework with a REST API on web dashboard + terminal supporting openssl TLS 1.3 Enfored + Trusted.
+V5 ![Main](https://github.com/1Birdo/GoFlood), Now Release / in Last Development as we speak, This will combind both Gostress-V2 + BotnetGo as one big C2 Framework + REST API Web UI + Ternimal with Encryption and a Bi-directional Proxy.
 
 >
 > 2025-04-N/A
