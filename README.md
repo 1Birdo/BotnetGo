@@ -5,7 +5,7 @@ V5 [Main Release](https://github.com/1Birdo/GoFlood), Now Released / in Last Dev
 >
 > 2025-04-N/A
 >
->https://github.com/1Birdo/GoStress
+>https://github.com/1Birdo/GoFlood
 
 > 2024-09-20
 >
