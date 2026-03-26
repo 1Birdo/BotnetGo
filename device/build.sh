@@ -1,12 +1,20 @@
-GOOS=linux GOARCH=386 go build -ldflags="-s -w" bot.go
-mv bot x86
-GOOS=linux GOARCH=arm GOARM=7 go build -ldflags="-s -w" bot.go
-mv bot armv7l
-GOOS=linux GOARCH=arm GOARM=5 go build -ldflags="-s -w" bot.go
-mv bot armv5l
-GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" bot.go
-mv bot armv8l
-GOOS=linux GOARCH=mips go build -ldflags="-s -w" bot.go
-mv bot mips
-GOOS=linux GOARCH=mipsle go build -ldflags="-s -w" bot.go
-mv bot mipsel
+#!/bin/sh
+set -e
+
+FLAGS="-ldflags=-s -w"
+SRC="bot.go"
+
+build() {
+    GOOS=$1 GOARCH=$2 GOARM=$3 go build -ldflags="-s -w" "$SRC"
+    mv bot "$4"
+    echo "built $4"
+}
+
+build linux 386 "" x86
+build linux arm 7 armv7l
+build linux arm 5 armv5l
+build linux arm64 "" armv8l
+build linux mips "" mips
+build linux mipsle "" mipsel
+
+echo "done"
