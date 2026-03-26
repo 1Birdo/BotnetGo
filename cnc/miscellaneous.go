@@ -9,77 +9,70 @@ import (
 	"time"
 )
 
-type level int
+type tier int
 
 const (
-	Owner level = iota
-	Admin
-	Pro
-	Basic
+	TierOwner tier = iota
+	TierAdmin
+	TierPro
+	TierBasic
 )
 
-func (user *User) GetLevel() level {
-	switch user.Level {
+func (a *Account) Tier() tier {
+	switch a.Level {
 	case "Owner":
-		return Owner
+		return TierOwner
 	case "Admin":
-		return Admin
+		return TierAdmin
 	case "Pro":
-		return Pro
+		return TierPro
 	case "Basic":
-		return Basic
-	default:
-		return Basic // Default level
+		return TierBasic
 	}
+	return TierBasic
 }
 
-type User struct {
+type Account struct {
 	Username string    `json:"username,omitempty"`
 	Password string    `json:"password,omitempty"`
 	Expire   time.Time `json:"expire"`
-	Level    string    `json:"level"` // Handle level as a string
+	Level    string    `json:"level"`
 }
 
-func AuthUser(username string, password string) (bool, *User) {
-	users := []User{}
-	usersFile, err := os.ReadFile("users.json")
+func checkCreds(user, pass string) (bool, *Account) {
+	raw, err := os.ReadFile("users.json")
 	if err != nil {
 		return false, nil
 	}
-	json.Unmarshal(usersFile, &users)
-	for _, user := range users {
-		if user.Username == username && user.Password == password {
-			if user.Expire.After(time.Now()) {
-				return true, &user
-			}
+	var accts []Account
+	json.Unmarshal(raw, &accts)
+	for _, a := range accts {
+		if a.Username == user && a.Password == pass && a.Expire.After(time.Now()) {
+			return true, &a
 		}
 	}
 	return false, nil
 }
 
-func getConsoleTitleAnsi(title string) string {
-	return "\u001B]0;" + title + "\a"
+func titleEsc(t string) string {
+	return "\u001B]0;" + t + "\a"
 }
 
-func (c *client) setConsoleTitle(title string) {
-	c.conn.Write([]byte(getConsoleTitleAnsi(title)))
+func (s *session) setHeader(t string) {
+	s.conn.Write([]byte(titleEsc(t)))
 }
 
-func setTitle(conn net.Conn, title string) {
-	// Send the escape sequence to set the window title
-	titleSequence := fmt.Sprintf("\033]0;%s\007", title)
-	conn.Write([]byte(titleSequence))
+func writeTitle(conn net.Conn, t string) {
+	conn.Write([]byte(fmt.Sprintf("\033]0;%s\007", t)))
 }
 
-func randomString(n int) (string, error) {
+func randStr(n int) (string, error) {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
-		return "", err // return an error if reading fails
+		return "", err
 	}
-
 	for i := range b {
-		b[i] = letterBytes[b[i]%byte(len(letterBytes))]
+		b[i] = charset[b[i]%byte(len(charset))]
 	}
-
 	return string(b), nil
 }
