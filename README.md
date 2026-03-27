@@ -1,5 +1,6 @@
 # BotnetGo
-Did a Little 2026 update just to clean it up [Thanks for the stars]
+Did a Little 2026 update just to clean it up [Thanks for the stars] (Deprecated Project)
+
 
 Go-based CnC + bot for network stress testing across multiple architectures.
 
